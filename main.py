@@ -1,6 +1,6 @@
 ## File: main.py
 ## Name: Manuel Cuevas
-## Date: 12/08/2016
+## Date: 12/12/2016
 ## Project: CarND - LaneLines
 ## Desc: Pipeline uses CV techniques like image threshold, GaussianBlur, Canny,
 ## and HoughLinesP. 
@@ -8,6 +8,7 @@
 ## road lane lines on a from images and video.
 ## This project was part of the CarND program. 
 ## Tools learned in class were used to identify lane lines on the road.
+## Revision: Rev 0000.002 12_10_2016 
 #######################################################################################
 #importing useful packages
 import sys
@@ -16,8 +17,7 @@ import matplotlib.image as mpimg
 import numpy as np
 import cv2
 import math
-
-
+from drawLineFunctions import *
 print(sys.version)
 
 #reading in an image
@@ -26,85 +26,10 @@ image = mpimg.imread('../test_images/solidWhiteRight.jpg')
 print('This image is:', type(image), 'with dimesions:', image.shape)
 plt.imshow(image)  #call as plt.imshow(gray, cmap='gray') to show a grayscaled image
 
-
-# Below are some helper functions from the lesson
-def grayscale(img):
-    """Applies the Grayscale transform
-    This will return an image with only one color channel"""
-    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+# # Pipeline
+# The output you return should be a color image (3 channel) for processing video below
+def pipeline(image):   
     
-def canny(img, low_threshold, high_threshold):
-    """Applies the Canny transform"""
-    return cv2.Canny(img, low_threshold, high_threshold)
-
-def gaussian_blur(img, kernel_size):
-    """Applies a Gaussian Noise kernel"""
-    return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
-
-"""
-Applies an image mask.
-    
-Only keeps the region of the image defined by the polygon
-formed from `vertices`. The rest of the image is set to black.
-"""
-def region_of_interest(img, vertices):
-    #defining a blank mask to start with
-    mask = np.zeros_like(img)   
-    
-    #defining a 3 channel or 1 channel color to fill the mask with depending on the input image
-    if len(img.shape) > 2:
-        channel_count = img.shape[2]  # i.e. 3 or 4 depending on your image
-        ignore_mask_color = (255,) * channel_count
-    else:
-        ignore_mask_color = 255
-        
-    #filling pixels inside the polygon defined by "vertices" with the fill color    
-    cv2.fillPoly(mask, vertices, ignore_mask_color)
-    
-    #returning the image only where mask pixels are nonzero
-    masked_image = cv2.bitwise_and(img, mask)
-    return masked_image
-
-
-def draw_lines(img, lines, color=[255, 0, 0], thickness=2):
-    for line in lines:
-        for x1,y1,x2,y2 in line:
-            cv2.line(img, (x1, y1), (x2, y2), color, thickness)
-
-"""
-Returns an image with hough lines drawn.
-"""
-def hough_lines(img, rho, theta, threshold, min_line_len, max_line_gap):
-
-    lines = cv2.HoughLinesP(img, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
-    line_img = np.zeros((*img.shape, 3), dtype=np.uint8)
-    draw_lines(line_img, lines)
-    return line_img
-
-# Python 3 has support for cool math symbols.
-
-def weighted_img(img, initial_img, α=0.8, β=1., λ=0.):
-    return cv2.addWeighted(initial_img, α, img, β, λ)
-
-
-# ## Test on Images
-# 
-# Now you should build your pipeline to work on the images in the directory "test_images"  
-# **You should make sure your pipeline works well on these images before you try the videos.**
-
-# In[29]:
-
-import os
-imagesList = os.listdir("../test_images/")
-
-for imageLocation in imagesList:
-    #open file
-    image = mpimg.imread("../test_images/"+imageLocation)
-    # Display the image                 
-    #plt.figure()
-    #plt.imshow(image)
-    
-    ##################################################################
     ###################COLOR SELECT - WHITE###########################
     # Grab the x and y size and make a copy of the image
     ysize = image.shape[0]
@@ -126,8 +51,7 @@ for imageLocation in imagesList:
     #mpimg.imsave("test_results/01colorSelection01.png", gray)
     #print ('colorSelection completed')
     
-    ##################################################################
-    ###################COLOR RANGE - YELLLOW##########################
+    ###################COLOR RANGE - Toget YELLLOW line###############
     # define range of blue color in HSV
     lower_color = np.array([200,190,0])
     upper_color = np.array([255,255,160])
@@ -141,10 +65,6 @@ for imageLocation in imagesList:
     # merger the greay image and the new image
     color_filter = cv2.bitwise_or(gray, res)
     
-    #plt.figure()
-    #plt.imshow(color_filter)
-    
-    ##################################################################
     ###################MASK LINES#####################################
     # Define a triangle region of interest
     left_bottom = [35, ysize]
@@ -163,17 +83,9 @@ for imageLocation in imagesList:
     # Find where image is both colored right and in the region
     color_filter[~region_thresholds] = [0,0,0]
 
-    # Display our two output images
-    #plt.figure()
-    #plt.imshow(color_filter) 
-
-    #mpimg.imsave("test_results/region.png", color_filter)
-    #print('Mask Completed')
-    
-    ##################################################################
     ###################Gaussian#######################################
     # Define a kernel size and apply Gaussian smoothing
-    kernel_size = 7
+    kernel_size = 5
     blur_gray = cv2.GaussianBlur(color_filter,(kernel_size, kernel_size),0)
 
 
@@ -181,31 +93,61 @@ for imageLocation in imagesList:
     low_threshold = 50      #wiet, make line think
     high_threshold = 300     #eleminate the background
     edges = cv2.Canny(blur_gray, low_threshold, high_threshold)
-
-    # Display the image
-    plt.figure()
-    plt.imshow(edges, cmap='Greys_r')
-    #mpimg.imsave("test_results/03"+imageLocation+".png", edges, cmap='Greys_r')
     
-    ##################################################################
-    ###################Hough transform################################
+    ###################Hough transform################################
     # Define the Hough transform parameters
+    # Make a blank the same size as our image to draw on
+    # NOTE: threshold - it will increase number of intersections needed to detect a 
+    # line and as a result reduce number of noise and incorrectly defined lines.
     rho = 2
     theta = np.pi/180
-    threshold = 15
-    min_line_length = 120
-    max_line_gap = 80
-    line_image = np.copy(image)*0 #creating a blank to draw lines on
+    threshold = 10              
+    min_line_length = 125
+    max_line_gap = 90
 
     # Run Hough on edge detected image and lines draw
     hough = hough_lines(edges, rho, theta, threshold, min_line_length, max_line_gap)
-
-    ##################################################################
+    
     ###################weighted_img################################
-    result = weighted_img(hough, image)
+    #Calculates the weighted sum of two arrays
+    weighted_img = cv2.addWeighted(hough, alpha=0.8, src2=image, beta=1., gamma=0.)
+    return (weighted_img)
 
+
+# ## Test on Images
+# Build pipeline to work wiht the images in the directory "../test_images"  
+import os
+imagesList = os.listdir("../test_images/")
+print("Processing ", len(imagesList), " images...")
+for i, imageLocation in (enumerate(imagesList)):
+    #open file
+    image = mpimg.imread("../test_images/"+imageLocation)
+    
+    result = pipeline(image) 
+    
     # Save & Display the results
-    mpimg.imsave("../test_results/05"+imageLocation+".png", result)
+    mpimg.imsave("test_results/05"+imageLocation+".png", result)
     plt.figure()
     plt.imshow(result) 
+    print("Images", i, "saved successfully")
 
+print("Program completed :)")
+
+# run your solution on all test_images and make copies into the test_images directory).
+
+# ## Test on Videos
+# Import everything needed to edit/save/watch video clips
+from moviepy.editor import VideoFileClip
+from IPython.display import HTML
+
+#Run pipeline with the solid white lane on the right
+white_output = 'test_results/white.mp4'
+clip1 = VideoFileClip("../test_video/solidWhiteRight.mp4")
+white_clip = clip1.fl_image(pipeline) #NOTE: this function expects color images!!
+white_clip.write_videofile(white_output, audio=False)
+
+#Run pipeline with the solid white lane on the left
+yellow_output = 'test_results/yellow.mp4'
+clip2 = VideoFileClip('../test_video/solidYellowLeft.mp4')
+yellow_clip = clip2.fl_image(pipeline)
+yellow_clip.write_videofile(yellow_output, audio=False)
