@@ -1,44 +1,88 @@
 ## File: drawLineFunctions.py
 ## Name: Manuel Cuevas
-## Date: 12/12/2016
+## Date: 12/08/2016
 ## Project: CarND - LaneLines
 ## Usage: This file containes a series of fucntions that can help identify and draw the
-## road lane lines on a from images and video.
-## Tools learned on the CarND program were used on this file 
-## Revision: Rev 0000.002 12_10_2016 
+## road lane lines from images and video.
+## Tools learned on the CarND program were used on this file
+## Revision: Rev 0000.004 12_11_2016
 #######################################################################################
 #importing useful packages
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 
-"""grayscale
-Applies the Grayscale transform
-Input: img, image 8-bit, 16-bit unsigned or single-precision floating-point 
-Return: An image with only one color channel
+"""colorTransformation
+Mask an image white and yellow colors.
+Input: img, image 8-bit, 16-bit unsigned or single-precision floating-point
+Return: A color filter for a scpectrum of white and yellow colors
+        The spectrum of white can be modefied by changeing color_thresholds
+        The spectrum of yellow can be modify by changing the lower_color and upper_color
 """
-def grayscale(img):
-    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+def colorTransformation(image):
+    ###################COLOR SELECT - WHITE line #####################
+    # Grab the x and y size and make a copy of the image
+    ysize = image.shape[0]
+    xsize = image.shape[1]
+    gray = np.copy(image)
 
-"""canny
-The function finds edges in the input image and marks them in the output map edges
-Input: img - image 8-bit, 16-bit unsigned or single-precision floating-point
-       threshold1 – first threshold for the hysteresis procedure
-       threshold2 – second threshold for the hysteresis procedure
-Return: An image with the mask edges (https://en.wikipedia.org/wiki/Canny_edge_detector)
-"""
-def canny(img, low_threshold, high_threshold):
-    return cv2.Canny(img, low_threshold, high_threshold)
+    # Define color selection criteria
+    red_threshold = 180
+    green_threshold = 180
+    blue_threshold = 180
 
-"""canny
-Blurs an image using a Gaussian filter.
-Input: img - input image
-       kernel_size – ksize.width and ksize.height can differ but they both
-       must be positive and odd.
-return: Blurs an image
+    rgb_threshold = [red_threshold, green_threshold, blue_threshold]
+
+    # Do a bitwise or with the "|" character to identify the thresholds
+    color_thresholds = (image[:,:,0] < rgb_threshold[0]) |                         (image[:,:,1] < rgb_threshold[1]) |                         (image[:,:,2] < rgb_threshold[2])
+    gray[color_thresholds] = [0,0,0]
+
+    #Uncomment the following code if you wish to save the image
+    #mpimg.imsave("test_results/01colorSelection01.png", gray)
+    #print ('colorSelection completed')
+    
+    ###################COLOR RANGE - YELLLOW line ####################
+    # define range of blue color in HSV
+    lower_color = np.array([200,190,0])
+    upper_color = np.array([255,255,160])
+
+    # Threshold the HSV image to get only blue colors
+    mask = cv2.inRange(image, lower_color, upper_color)
+
+    # Bitwise-AND mask and original image
+    res = cv2.bitwise_and(image,image, mask= mask)
+
+    # merger the grey image and the new image
+    color_filter = cv2.bitwise_or(gray, res)
+    
+    return color_filter
+
+"""maskImage
+Triangle mask with dimentions left_bottom, right_bottom, and apex
+Input: img, image 8-bit, 16-bit unsigned or single-precision floating-point
+Return: An image with a triangle mask
 """
-def gaussian_blur(img, kernel_size):
-    return cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
+def maskImage(image, mask_filter):
+    ###################MASK LINES#####################################
+    # Define a triangle region of interest
+    ysize = image.shape[0]
+    xsize = image.shape[1]
+    left_bottom = [35, ysize]
+    right_bottom = [xsize-35, ysize]
+    apex = [xsize/2, ysize*(1/2)+45]
+
+    # Fit lines (y=Ax+B) to identify the  3 sided region of interest
+    fit_left = np.polyfit((left_bottom[0], apex[0]), (left_bottom[1], apex[1]), 1)
+    fit_right = np.polyfit((right_bottom[0], apex[0]), (right_bottom[1], apex[1]), 1)
+    fit_bottom = np.polyfit((left_bottom[0], right_bottom[0]), (left_bottom[1], right_bottom[1]), 1)
+
+    # Find the region inside the lines
+    XX, YY = np.meshgrid(np.arange(0, xsize), np.arange(0, ysize))
+    region_thresholds = (YY > (XX*fit_left[0] + fit_left[1])) & (YY > (XX*fit_right[0] + fit_right[1])) & (YY < (XX*fit_bottom[0] + fit_bottom[1]))
+
+    # Find where the image is both colored right and in the region
+    mask_filter[~region_thresholds] = [0,0,0]
+    return mask_filter
 
 """region_of_interest
 Only keeps the region of the image defined by the polygon
@@ -70,14 +114,14 @@ right_Ypair, right_Xpair = None, None
 left_pair, left_x = None, None
 
 """draw_lines
-In two ways by drwaing the lines already detected and by using this lines to  
+In two ways by drawing the lines already detected and by using these lines to  
 decide which segments are part of the left line vs the right lane by the  
 slope ((y2-y1)/(x2-x1)) and extrapolate the line segments.
 Input: img - image 8-bit, 16-bit unsigned or single-precision floating-point
        lines - array of lines arleady detected
        color - color to draw lines
-       thickness - the thickness of the lines to be draw
-Returns: An image with the lines road lines draw
+       thickness - the thickness of the lines to be drawn
+Returns: An image with the road lines drawn
 """
 def draw_lines(img, lines, color=[255, 0, 0], thickness=3):
     right_slope = []
@@ -133,17 +177,17 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=3):
         pass
     
     
-    return 
+    return
 
-"""draw_lines
+"""hough_lines
 Returns an image with hough lines drawn.  
 Input: img - image 8-bit, 16-bit unsigned or single-precision floating-point
        rho - array of lines arleady detected
        theta - color to draw lines
-       threshold - the thickness of the lines to be draw
+       threshold - the thickness of the lines to be drawn
        min_line_len
        max_line_gap
-Returns: An back image with the lines road lines draw
+Returns: A back image with the road lines drawn
 """
 def hough_lines(img, rho, theta, threshold, min_line_len, max_line_gap):
     lines = cv2.HoughLinesP(img, rho, theta, threshold, np.array([]), minLineLength=min_line_len, maxLineGap=max_line_gap)
@@ -152,7 +196,7 @@ def hough_lines(img, rho, theta, threshold, min_line_len, max_line_gap):
     return line_img
 
 """printImg
-Plots two images side by side for compering    
+Plots two images side by side for comparing    
 """
 def printImg(img1, img2, img1_title = 'Input Image', img2_title = 'Output Image', cmap='Greys_r'):
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
