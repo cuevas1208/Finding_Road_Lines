@@ -4,6 +4,8 @@ Overview
 ---
 The project uses a pipeline to detect the road line segments, then extrapolate them and draw them onto the image for display. Within the pipeline some of the tools used are: color selection, region of interest selection, grayscaling, Gaussian smoothing, Canny Edge Detection and Hough Transform line detection.
 
+##### For more information about this project visit the [Wiki page](https://github.com/cuevas1208/Finding_Road_Lines/wiki)
+
 Quickstart
 ---
 Download repository
