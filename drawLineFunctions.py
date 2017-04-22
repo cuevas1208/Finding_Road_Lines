@@ -129,19 +129,21 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=3):
     right_lines = []
     
     global right_Ypair, right_Xpair, left_Ypair, left_Xpair
+
+    if lines is not None:
         
-    for line in lines:
-    
-        for x1,y1,x2,y2 in line:
-            cv2.line(img, (x1, y1), (x2, y2), color, thickness)
-            
-            m = ((y2-y1)/(x2-x1)) # slope
-            if m < 0:
-                left_slope.append(m)
-                left_lines.append((x2,y2))
-            else:
-                right_slope.append(m)
-                right_lines.append((x1,y1))
+        for line in lines:
+        
+            for x1,y1,x2,y2 in line:
+                cv2.line(img, (x1, y1), (x2, y2), color, thickness)
+                
+                m = ((y2-y1)/(x2-x1)) # slope
+                if m < 0:
+                    left_slope.append(m)
+                    left_lines.append((x2,y2))
+                else:
+                    right_slope.append(m)
+                    right_lines.append((x1,y1))
     thickness=5
 
     try:
