@@ -56,26 +56,6 @@ if __name__ == '__main__':
     if not os.path.exists(outPutLocation):
         os.makedirs(outPutLocation)
 
-    ### Test on Images
-    # Build pipeline to work with the images in the directory "test_images/"
-    if os.path.exists("test_images/"):
-        #imagesList = os.listdir("test_images/*.jpg")
-        imagesList = glob.glob(os.path.join("test_images/", '*.jpg'))
-        print("Processing ", len(imagesList), " images...")
-        for i, imageLocation in (enumerate(imagesList)):
-            #open file
-            image = mpimg.imread(imageLocation)
-            result = Pipeline.pipeline(image)
-            
-            # Save & Display the results
-            mpimg.imsave(outPutLocation+"/R_"+os.path.basename(imageLocation)+".png", result)
-            plt.figure()
-            plt.imshow(result)
-            print("Images", i, "saved successfully")
-    else:
-        print("Missing images dirctory test_images")
-
-    
     ### Test on Videos
     # Import everything needed to edit/save/watch video clips
     from moviepy.editor import VideoFileClip
@@ -88,8 +68,28 @@ if __name__ == '__main__':
             file_output = outPutLocation+'/V_'+ os.path.basename(fileName)
             print("Processing video", os.path.basename(fileName))
             clip1 = VideoFileClip(args.video_location+os.path.basename(fileName))
-            white_clip = clip1.fl_image(pipeline) #NOTE: this function expects RGB images!!
+            white_clip = clip1.fl_image(Pipeline.pipeline) #NOTE: this function expects RGB images!!
             white_clip.write_videofile(file_output, audio=False)
             print("Video saved successfully")
+    else:
+        ### Test on Images
+        # Build pipeline to work with the images in the directory "test_images/"
+        if os.path.exists("test_images/"):
+            #imagesList = os.listdir("test_images/*.jpg")
+            imagesList = glob.glob(os.path.join("test_images/", '*.jpg'))
+            print("Processing ", len(imagesList), " images...")
+            for i, imageLocation in (enumerate(imagesList)):
+                #open file
+                image = mpimg.imread(imageLocation)
+                result = Pipeline.pipeline(image)
+                
+                # Save & Display the results
+                mpimg.imsave(outPutLocation+"/R_"+os.path.basename(imageLocation)+".png", result)
+                plt.figure()
+                plt.imshow(result)
+                print("Images", i, "saved successfully")
+        else:
+            print("Missing images dirctory test_images")
+
 
     print("###Program completed###")
