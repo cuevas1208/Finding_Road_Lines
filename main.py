@@ -33,6 +33,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Remote Arguments')
     parser.add_argument(
         'pipeline',
+        nargs='?',
         type=int,
         default=2,
         help='Basic pipeline = 1, Advance pipleline = 2'
