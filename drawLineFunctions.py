@@ -5,7 +5,6 @@
 ## Usage: This file containes a series of fucntions that can help identify and draw the
 ## road lane lines from images and video.
 ## Tools learned on the CarND program were used on this file
-## Revision: Rev 0000.004 12_11_2016
 #######################################################################################
 #importing useful packages
 import matplotlib.pyplot as plt
